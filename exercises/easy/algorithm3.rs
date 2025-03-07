@@ -5,8 +5,22 @@
 */
 
 
-fn sort<T>(array: &mut [T]){
-	//TODO
+fn sort<T:std::cmp::PartialOrd>(array: &mut [T]){
+	let  mut len = array.len();
+    let mut is_swap = true;
+
+    while is_swap {
+        // 先正向比较，找到最大值，再反向
+        is_swap = false;
+        for i in 1..len {
+            if array[i-1] > array[i] {
+                array.swap(i-1, i);
+                is_swap = true;
+            }
+        }
+        len-=1;
+    }
+
 }
 #[cfg(test)]
 mod tests {

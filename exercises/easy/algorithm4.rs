@@ -50,13 +50,15 @@ where
 
     // Insert a value into the BST
     fn insert(&mut self, value: T) {
-        //TODO
+        match self.root { //root节点是否存在
+            None => self.root = Some(Box::new(TreeNode::new(value))),
+            Some(ref mut node) => node.insert(value),
+        }
     }
 
     // Search for a value in the BST
     fn search(&self, value: T) -> bool {
-        //TODO
-        true
+        self.root.as_ref().map_or(false, |node| node.search(&value))
     }
 }
 
@@ -66,8 +68,33 @@ where
 {
     // Insert a node into the tree
     fn insert(&mut self, value: T) {
-        //TODO
+        match value.cmp(&self.value) {
+            Ordering::Equal => {} //不重复插入
+            Ordering::Less => {//小于，左子树
+                if self.left.is_none() {
+                    self.left = Some(Box::new(TreeNode::new(value))); // Option  Box TreeNode
+                } else {
+                    self.left.as_mut().unwrap().insert(value); //因为要修改左子树
+                }
+            }
+            Ordering::Greater => {
+                if self.right.is_none() {
+                    self.right = Some(Box::new(TreeNode::new(value))); // Option  Box TreeNode
+                } else {
+                    self.right.as_mut().unwrap().insert(value);
+                }
+            }
+        }
     }
+
+    fn search(&self, value: &T) -> bool  {
+        match value.cmp(&self.value) {
+            Ordering::Equal => true,
+            Ordering::Less => self.left.as_ref().map_or(false, |node| node.search(value)),
+            Ordering::Greater => self.right.as_ref().map_or(false, |node| node.search(value)),
+        }
+    }
+
 }
 
 

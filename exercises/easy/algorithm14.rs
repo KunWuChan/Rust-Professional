@@ -11,9 +11,25 @@
 
 use std::fmt::{self, Display, Formatter};
 
-pub fn find_duplicates(nums: Vec<i32>) -> Vec<i32> {
-    // TODO: Implement the logic to find all duplicates in the array
-    Vec::new() // Placeholder return value
+pub fn find_duplicates(mut nums: Vec<i32>) -> Vec<i32> {
+    // 如果数组为空或只有一个元素，无重复
+    if nums.len() <= 1 {
+        return Vec::new();
+    }
+
+    // 原地排序
+    nums.sort_unstable();
+
+    // 收集重复元素
+    let mut duplicates = Vec::new();
+    for i in 1..nums.len() {
+        // 如果当前元素与前一个相等，且尚未加入 duplicates
+        if nums[i] == nums[i - 1] && (duplicates.is_empty() || *duplicates.last().unwrap() != nums[i]) {
+            duplicates.push(nums[i]);
+        }
+    }
+
+    duplicates
 }
 
 #[cfg(test)]

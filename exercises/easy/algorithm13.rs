@@ -14,8 +14,41 @@
 use std::fmt::{self, Display, Formatter};
 
 pub fn are_anagrams(s1: String, s2: String) -> bool {
-    // TODO: Implement the logic to check if two strings are anagrams
-    false // Placeholder return value
+    let normalize = |s: String| {
+        s.chars()
+            .filter(|c| c.is_alphabetic()) // 只保留字母
+            .map(|c| c.to_ascii_lowercase()) // 转换为小写
+            .collect::<Vec<char>>()
+    };
+
+    let chars1 = normalize(s1);
+    let chars2 = normalize(s2);
+
+    // 如果长度不同，直接返回 false
+    if chars1.len() != chars2.len() {
+        return false;
+    }
+
+    // 使用固定大小数组计数（假设只处理 a-z）
+    let mut count = [0; 26];
+    
+    // 统计 s1 中字母出现次数
+    for c in chars1 {
+        let index = (c as u8 - b'a') as usize;
+        count[index] += 1;
+    }
+
+    // 减去 s2 中字母出现次数
+    for c in chars2 {
+        let index = (c as u8 - b'a') as usize;
+        if count[index] == 0 {
+            return false;
+        }
+        count[index] -= 1;
+    }
+
+    // 检查计数数组是否全为 0
+    count.iter().all(|&x| x == 0)
 }
 
 #[cfg(test)]

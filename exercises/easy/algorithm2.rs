@@ -73,7 +73,25 @@ impl<T> LinkedList<T> {
         }
     }
 	pub fn reverse(&mut self){
-		// TODO
+		// 将指针反转，并重新设置head即可
+        if self.length <= 1 {
+            return;
+        }
+
+        let mut cur = self.start;
+        let tail = self.end;
+
+        while let Some(mut node) = cur {
+            unsafe {
+                let next = (*node.as_ptr()).next;
+                (*node.as_ptr()).next = (*node.as_ptr()).prev;
+                (*node.as_ptr()).prev = next;
+                cur = next;
+            }
+
+        }
+        self.end = self.start;
+        self.start = tail;
 	}
 }
 

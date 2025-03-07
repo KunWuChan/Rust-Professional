@@ -29,13 +29,13 @@ struct LinkedList<T> {
     end: Option<NonNull<Node<T>>>,
 }
 
-impl<T> Default for LinkedList<T> {
+impl<T:std::cmp::PartialOrd + Clone> Default for LinkedList<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T> LinkedList<T> {
+impl<T:std::cmp::PartialOrd + Clone> LinkedList<T> {
     pub fn new() -> Self {
         Self {
             length: 0,
@@ -71,12 +71,42 @@ impl<T> LinkedList<T> {
     }
 	pub fn merge(list_a:LinkedList<T>,list_b:LinkedList<T>) -> Self
 	{
-		//TODO
-		Self {
-            length: 0,
-            start: None,
-            end: None,
+        let mut list_c = LinkedList::<T>::new();
+        if list_a.length == 0 {
+            return list_b;
+        } else if list_b.length ==0 {
+            return list_a;
         }
+
+		let mut start_a = list_a.start;
+        let mut start_b = list_b.start;
+
+        while let (Some(a), Some(b)) = (start_a, start_b) {
+            unsafe{
+                if (*a.as_ptr()).val <= (*b.as_ptr()).val {
+                    list_c.add( (*a.as_ptr()).val.clone());
+                    start_a = (*a.as_ptr()).next;
+                } else {
+                    list_c.add((*b.as_ptr()).val.clone());
+                    start_b = (*b.as_ptr()).next;
+                }
+            }
+        }
+
+        while let Some(a) = start_a {
+            unsafe{
+                list_c.add( (*a.as_ptr()).val.clone());
+                start_a = (*a.as_ptr()).next;
+            }
+        }
+
+        while let Some(b) = start_b {
+            unsafe{
+                list_c.add( (*b.as_ptr()).val.clone());
+                start_b = (*b.as_ptr()).next;
+            }
+        }
+        list_c
 	}
 }
 

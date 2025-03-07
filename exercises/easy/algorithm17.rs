@@ -11,9 +11,28 @@
 
 use std::fmt::{self, Display, Formatter};
 
-pub fn intersection(nums1: Vec<i32>, nums2: Vec<i32>) -> Vec<i32> {
-    // TODO: Implement the logic to find the intersection of two arrays
-    Vec::new() // Placeholder return value
+pub fn intersection(mut nums1: Vec<i32>, mut nums2: Vec<i32>) -> Vec<i32> {
+    nums1.sort_unstable();
+    nums2.sort_unstable();
+    let mut result = Vec::new();
+    let mut i = 0;
+    let mut j = 0;
+
+    while i < nums1.len() && j < nums2.len() {
+        if nums1[i] == nums2[j] {
+            if result.is_empty() || *result.last().unwrap() != nums1[i] {
+                result.push(nums1[i]);
+            }
+            i += 1;
+            j += 1;
+        } else if nums1[i] < nums2[j] {
+            i += 1;
+        } else {
+            j += 1;
+        }
+    }
+
+    result
 }
 
 #[cfg(test)]

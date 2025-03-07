@@ -12,8 +12,15 @@
 use std::fmt::{self, Display, Formatter};
 
 pub fn is_palindrome(s: String) -> bool {
-    // TODO: Implement the logic to check if the string is a palindrome
-    false // Placeholder return value
+    let str:String = s.chars().filter(|c| c.is_alphabetic()).collect();
+    let c = str.to_ascii_uppercase().chars().collect::<Vec<_>>();
+    let char_len = c.len();
+    for i in 0..char_len / 2 {
+        if c[i] != c[char_len - i - 1] {
+            return false;
+        }
+    }
+    true 
 }
 
 #[cfg(test)]
