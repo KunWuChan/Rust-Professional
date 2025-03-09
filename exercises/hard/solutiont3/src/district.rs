@@ -1,91 +1,154 @@
-use std::collections::{BTreeMap, HashMap};
-use serde::Deserialize;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 
-type Batch = BTreeMap<String, Vec<String>>;
+type CityPair = (String, Vec<String>);
 
-struct UnionFind {
-    parent: Vec<usize>,
-    rank: Vec<usize>,
+#[derive(Debug)]
+struct District {
+    cities: Vec<CityPair>,
 }
 
-impl UnionFind {
-    fn new(size: usize) -> Self {
-        Self {
-            parent: (0..size).collect(),
-            rank: vec![0; size],
+
+impl District {
+    fn new() -> Self {
+        District {
+            cities: Vec::new(),
         }
     }
 
-    fn find(&mut self, x: usize) -> usize {
-        if self.parent[x] != x {
-            self.parent[x] = self.find(self.parent[x]);
+    fn add_city(&mut self, city: String, neighbors: Vec<String>) {
+        self.cities.push((city, neighbors));
+    }
+}
+
+fn parse_json(content: &str) -> HashMap<String, District> {
+    let mut districts = HashMap::new();
+    let mut current_district = String::new();
+    let mut in_district = false;
+    
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with("//") {
+            continue;
         }
-        self.parent[x]
+        
+        if line.contains(":") {
+            if line.ends_with("{") {
+                // 处理district编号
+                if let Some(district_num) = line.split('"').nth(1) {
+                    current_district = district_num.to_string();
+                    districts.entry(current_district.clone())
+                        .or_insert_with(District::new);
+                    in_district = true;
+                }
+            } else if in_district && !line.ends_with("{") {
+                // 处理城市和邻居
+                let parts: Vec<&str> = line.split(':').collect();
+                if parts.len() == 2 {
+                    // 处理城市名
+                    let city = parts[0].trim_matches(|c| c == '"' || c == ' ').to_string();
+                    
+                    // 处理邻居列表
+                    let neighbors_str = parts[1].trim();
+                    if neighbors_str.starts_with('[') {
+                        // 过滤掉空字符串和清理字符串两端的特殊字符
+                        let neighbors: Vec<String> = neighbors_str
+                            .trim_matches(|c| c == '[' || c == ']' || c == ',')
+                            .split(',')
+                            .map(|s| s.trim_matches(|c| c == '"' || c == ' ' || c == '[' || c == ']'))
+                            .filter(|s| !s.is_empty())
+                            .map(|s| s.to_string())
+                            .collect();
+                        
+                        if let Some(district) = districts.get_mut(&current_district) {
+                            if !neighbors.is_empty() {
+                                district.add_city(city, neighbors);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    districts
+}
+
+struct Graph {
+    adj_list: HashMap<String, HashSet<String>>,
+}
+
+impl Graph {
+    fn new() -> Self {
+        Graph {
+            adj_list: HashMap::new(),
+        }
     }
 
-    fn union(&mut self, x: usize, y: usize) {
-        let x_root = self.find(x);
-        let y_root = self.find(y);
+    fn add_edge(&mut self, from: &str, to: &str) {
+        self.adj_list.entry(from.to_string())
+            .or_insert_with(HashSet::new)
+            .insert(to.to_string());
+        self.adj_list.entry(to.to_string())
+            .or_insert_with(HashSet::new)
+            .insert(from.to_string());
+    }
 
-        if x_root == y_root {
-            return;
-        }
+    fn count_connected_components(&self) -> i32 {
+        let mut visited = HashSet::new();
+        let mut count = 0;
+        let mut stack = VecDeque::new();
 
-        // 固定合并顺序：总是将小索引合并到大索引
-        if x_root < y_root {
-            self.parent[x_root] = y_root;
-        } else {
-            self.parent[y_root] = x_root;
+        // 处理所有节点
+        for node in self.adj_list.keys() {
+            if !visited.contains(node) {
+                count += 1;
+                stack.push_back(node.clone());
+                visited.insert(node.clone());
+
+                // 使用栈进行DFS
+                while let Some(current) = stack.pop_back() {
+                    if let Some(neighbors) = self.adj_list.get(&current) {
+                        for neighbor in neighbors {
+                            if !visited.contains(neighbor) {
+                                stack.push_back(neighbor.clone());
+                                visited.insert(neighbor.clone());
+                            }
+                        }
+                    }
+                }
+            }
         }
+        count
     }
 }
 
 pub fn count_provinces() -> String {
-    let input = fs::read_to_string("district.json").expect("读取文件失败");
-    let batches: HashMap<String, Batch> = serde_json::from_str(&input).expect("JSON解析失败");
-
-    let mut results = vec![];
+    let file_content = fs::read_to_string("district.json")
+        .expect("Failed to read district.json");
     
-    for (_, batch) in batches {
-        // 使用BTreeSet保证城市顺序稳定
-        let mut cities:BTreeMap<&str, Vec<String>> = BTreeMap::new();
-        for (city, neighbors) in &batch {
-            cities.entry(city.as_str()).or_insert(vec![]);
-            for n in neighbors {
-                cities.entry(n.as_str()).or_insert(vec![]);
-            }
-        }
-
-        // 生成稳定索引映射
-        let city_list: Vec<&str> = cities.keys().copied().collect();
-        let city_index: HashMap<_, _> = city_list
-            .iter()
-            .enumerate()
-            .map(|(i, &c)| (c, i))
-            .collect();
-
-        let mut uf = UnionFind::new(city_list.len());
+    let districts = parse_json(&file_content);
+    // println!("{:#?}", districts.get("5"));
+    let mut result = Vec::new();
+    
+    for i in 1..=5 {
+        let mut graph = Graph::new();
         
-        // 按字母顺序处理城市
-        for (city, neighbors) in batch.iter() {
-            let city_idx = city_index[city.as_str()];
-            for neighbor in neighbors {
-                let neighbor_idx = city_index[neighbor.as_str()];
-                uf.union(city_idx, neighbor_idx);
+        if let Some(district) = districts.get(&i.to_string()) {
+            for (city, neighbors) in &district.cities {
+                for neighbor in neighbors {
+                    graph.add_edge(city, neighbor);
+                }
             }
-        }
 
-        // 计算连通分量
-        let mut roots = vec![];
-        for i in 0..city_list.len() {
-            roots.push(uf.find(i));
+            result.push(graph.count_connected_components());
+        } else {
+            result.push(0);
         }
-        roots.sort_unstable();
-        roots.dedup();
-        
-        results.push(roots.len().to_string());
     }
 
-    results.join(",")
+    result.iter()
+        .map(|&x| x.to_string())
+        .collect::<Vec<_>>()
+        .join(",")
 }
